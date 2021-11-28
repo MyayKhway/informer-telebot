@@ -37,13 +37,23 @@ raid_btn = types.KeyboardButton("ဝင်စီးနင်း")
 mobilize_btn = types.KeyboardButton("တပ် ေရွှ့")
 barrier_btn = types.KeyboardButton("အတားအစီး နဲ့လမ်းပိတ်")
 check_point_btn = types.KeyboardButton("စစ် ေဆးေရး")
-Event_type_markup.add(watch_dogs_btn, patrol_btn, raid_btn, mobilize_btn, barrier_btn, check_point_btn, check_point_btn)
+others_btn = types.KeyboardButton("အခြား")
+Event_type_markup.add(watch_dogs_btn, patrol_btn, raid_btn, mobilize_btn, barrier_btn, check_point_btn, check_point_btn, others_btn)
 
 # for confirmation 
-confirmation_markup = types.ReplyKeyboardMarkup(row_width=2, one_time_keyboard=True)
+confirmation_markup = types.ReplyKeyboardMarkup(row_width=3, one_time_keyboard=True)
 yes_btn = types.KeyboardButton("Yes, submit it")
-no_btn = types.KeyboardButton("No")
-confirmation_markup.add(yes_btn, no_btn)
+edit_btn = types.KeyboardButton("No, I will start over")
+no_btn = types.KeyboardButton("No, cancel it") 
+confirmation_markup.add(yes_btn, no_btn, edit_btn)
+
+# for editing
+edit_options_markup = types.ReplyKeyboardMarkup(row_width=3, one_time_keyboard=True)
+township_btn = types.KeyboardButton("Township")
+time_btn = types.KeyboardButton("Time")
+description_btn = types.KeyboardButton("Description")
+type_btn = types.KeyboardButton("Type")
+edit_options_markup.add(township_btn, time_btn, description_btn, type_btn)
 
 # Handle '/start'
 @bot.message_handler(commands='start')
@@ -52,8 +62,8 @@ def start_asking(message):
         You can start informing by typing /inform in the chat
 """)
 
-@bot.message_handler(commands=["inform"])
-def start_asking(message):
+@bot.message_handler(commands="inform")
+def start_asking_township(message):
     msg = bot.send_message(message.chat.id, "Where did you see the event?", reply_markup=location_keyboard) 
     bot.register_next_step_handler(msg, save_township)    
 
@@ -66,28 +76,40 @@ def save_township(message):
 
 
 def save_time(message):
-    try:
-        chat_id = message.chat.id
-        time = message.text
-        if ":" not in time:
-            msg = bot.reply_to(message, 'Invalid format, Please type the time you saw the event, for example. 12:30 am or 13:45')
-            bot.register_next_step_handler(msg, save_time)
-            return
-        event = event_dict[chat_id]
-        event.time = time
-        msg = bot.send_message(message.chat.id, 'Choose the event type', reply_markup=Event_type_markup)
-        bot.register_next_step_handler(msg, save_event_type)
-    except Exception as e:
-        bot.reply_to(message, 'oooops')
-        print(e)
+    chat_id = message.chat.id
+    time = message.text
+    if not check_time_format(time):
+        msg = bot.reply_to(message, 'Invalid format, Please type the time you saw the event, for example. 12:30 am or 13:45')
+        bot.register_next_step_handler(msg, save_time)
+        return
+    event = event_dict[chat_id]
+    event.time = time
+    msg = bot.send_message(message.chat.id, 'Choose the event type', reply_markup=Event_type_markup)
+    bot.register_next_step_handler(msg, save_event_type)
+
+def check_time_format(time):
+    return True
+  
 
 def save_event_type(message):
+    chat_id = message.chat.id
+    event_type = message.text
+    if event_type == "အခြား":
+        msg = bot.send_message(chat_id, "Please type the specific")
+        bot.register_next_step_handler(message, other_type_save)
+    event = event_dict[chat_id]
+    event.event_type = event_type
+    msg = bot.send_message(message.chat.id, "Write the description in detail. For example, - 55ရပ်ကွက်ရုံးအနီးကဖြတ်သန်းသွားတဲ့ဆိုင်ကယ်ကို ခေါ်စစ်တာ ဆိုင်ကယ်သမားမောင်းထွက်သွားလို  လိုက်ဖမ်းနေတယ်လိုလဲသိရပါတယ်")
+    bot.register_next_step_handler(msg, save_description)
+
+def other_type_save(message):
     chat_id = message.chat.id
     event_type = message.text
     event = event_dict[chat_id]
     event.event_type = event_type
     msg = bot.send_message(message.chat.id, "Write the description in detail. For example, - 55ရပ်ကွက်ရုံးအနီးကဖြတ်သန်းသွားတဲ့ဆိုင်ကယ်ကို ခေါ်စစ်တာ ဆိုင်ကယ်သမားမောင်းထွက်သွားလို  လိုက်ဖမ်းနေတယ်လိုလဲသိရပါတယ်")
     bot.register_next_step_handler(msg, save_description)
+
 
 def save_description(message):
     chat_id = message.chat.id
@@ -97,6 +119,17 @@ def save_description(message):
     Is this the information you want to provide?
     Time:""" + event.time + """Township:""" + event.township + """Type:""" + event.event_type + """Description:"""
     + event.description, reply_markup=confirmation_markup)
+    bot.register_next_step_handler(msg, save_edit_or_delete_data)
+
+def save_edit_or_delete_data(message):
+    chat_id = message.chat.id
+    event = event_dict[chat_id]
+    if message.text == "Yes, submit it":
+        msg = bot.send_message(chat_id, "Thanks for informing, your information has been submitted and the chat history will delete itself within 30 seconds")
+    elif message.text == "No, I will start over":
+        start_asking_township(message)
+    elif message.text == "No, cancel it":
+        start_asking(message)
 
 
 # Enable saving next step handlers to file "./.handlers-saves/step.save".
