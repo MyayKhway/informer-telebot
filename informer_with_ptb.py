@@ -21,7 +21,8 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-TOWN_ALPHABET, TOWNSHIP, LOCATION, TIME, TYPE, DESCRIPTION, SOURCE = range(7)
+TOWN_ALPHABET, TOWNSHIP, LOCATION, TIME, TYPE, DESCRIPTION, SOURCE, CONFIRMATION = range(8)
+
 
 def start(update: Update, context: CallbackContext) -> int:
     """Start the conversation and asks the user the start letter of township"""
@@ -66,6 +67,41 @@ def ask_location(update: Update, context: CallbackContext) -> int:
     update.message.reply_text(
         "Send the location of the event, you can pin the location by pressing attachments icon and choose location"
     )
+    return LOCATION
+
+def ask_time(update: Update, context: CallbackContext) -> int:
+    """Save the location and ask for time"""
+    update.message.reply_text(
+        "Send when the event occured"
+    )
+    return TIME
+
+def ask_type(update: Update, context: CallbackContext) -> int:
+    reply_keyboard = [
+        ["သပိတ်","အပစ်အခတ်"],
+        ["လမ်းပိတ်", "ပေါက်ကွဲ"],
+        ["တားစစ်", "ရန်သူလှုပ်ရှားမှု"],
+        ["CCTV", "ကင်းပုန်း"],
+        ["ဒလန်", "ဧည့်စာရင်း"],
+    ]
+    update.message.reply_text(
+        "Categorise the event",reply_markup=ReplyKeyboardMarkup(
+            reply_keyboard, resize_keyboard=True, one_time_keyboard=True, input_field_placeholder="Category"
+        )
+    )
+    return TYPE
+
+def ask_description(update: Update, context: CallbackContext) -> int:
+    update.message.reply_text(
+        "Type the details of what you saw"
+    )
+    return DESCRIPTION
+
+def ask_source(update: Update, conetxt: CallbackContext) -> int:
+    update.message.reply_text(
+        "What is your source?"
+    )
+    return CONFIRMATION
 
 def cancel(update: Update, context: CallbackContext) -> int:
     return ConversationHandler.END  
@@ -80,7 +116,11 @@ def main() -> None:
         entry_points=[CommandHandler('start', start)],
         states = {
             TOWN_ALPHABET : [MessageHandler(Filters.text, town_alpha)],
-            TOWNSHIP : [MessageHandler(Filters.text, ask_location)]
+            TOWNSHIP : [MessageHandler(Filters.text, ask_location)],
+            LOCATION : [MessageHandler(Filters.location, ask_time)],
+            TIME : [MessageHandler(Filters.text, ask_type)],
+            TYPE : [MessageHandler(Filters.text, ask_description)],
+            DESCRIPTION : [MessageHandler(Filters.text, ask_source)],
         },
         fallbacks=[CommandHandler('cancel',cancel)],
     )
