@@ -1,4 +1,5 @@
 import os
+import json
 import logging
 from typing import Dict
 from dotenv.main import load_dotenv
@@ -224,7 +225,7 @@ def handle_personnel_strength_callback(update: Update, context: CallbackContext)
     )
     return PERSONNEL_STRENGTH
 
-def save_strength_ask_attachment(update: Update, context:CallbackContext) -> int:
+def save_strength_confirm_attachment(update: Update, context:CallbackContext) -> int:
     """Save strength and ask for attachment if any"""
     update.message.reply_text(
         """Would you like to add some attachment to this information?""", 
@@ -232,10 +233,24 @@ def save_strength_ask_attachment(update: Update, context:CallbackContext) -> int
     )
     return ATTACHMENT
 
+def ask_for_attachment(update: Update, context: CallbackContext) -> int:
+    if update.message.text == "Yes":
+        update.message.reply_text(
+            """Attach a file""",
+        )
+        return ATTACHMENT
+    else:
+        update.message.reply_text(
+            """What is the source?"""
+        )
+    return SOURCE
+
 def save_attachment_ask_source(update: Update, context: CallbackContext) -> int:
-    """Save attachment and ask source"""
+    """Save attachment"""
+    file = context.bot.getFile(update.message.photo[-1].file_id)
+    print(json.dumps(file))
     update.message.reply_text(
-        """What is the source?"""
+        """What is your source?"""
     )
     return SOURCE
 
@@ -257,6 +272,7 @@ def cancel(update: Update, context: CallbackContext) -> int:
 def main() -> None:
     load_dotenv()
     TOKEN = os.getenv("BOTTOKEN")
+    PORT = os.getenv("PORT")
     updater = Updater(TOKEN)
     dispatcher = updater.dispatcher
 
@@ -272,13 +288,16 @@ def main() -> None:
             TEXT_LOCATION : [MessageHandler(Filters.text, save_text_location_ask_description)],
             DESCRIPTION : [MessageHandler(Filters.text, save_description_ask_strength)],
             VEHICLE_STRENGTH : [
-                MessageHandler(Filters.text,  save_strength_ask_attachment),
+                MessageHandler(Filters.text,  save_strength_confirm_attachment),
                 CallbackQueryHandler(handle_strength_callback),
                 ],
             PERSONNEL_STRENGTH : [
                 CallbackQueryHandler(handle_personnel_strength_callback),
             ],
-            ATTACHMENT : [MessageHandler(Filters.text, save_attachment_ask_source)],
+            ATTACHMENT : [
+                MessageHandler(Filters.text, ask_for_attachment),
+                MessageHandler(Filters.attachment, save_attachment_ask_source)
+                ],
             SOURCE : [MessageHandler(Filters.text, ask_confirmation)],
             CONFIRMATION: [MessageHandler(Filters.text, end_convo)],
         },
@@ -286,10 +305,11 @@ def main() -> None:
     )
 
     dispatcher.add_handler(conv_handler)
-
-    updater.start_polling()
-
-    updater.idle()
+    
+    updater.start_webhook(listen="0.0.0.0",
+                          port=int(PORT),
+                          url_path=TOKEN)
+    updater.bot.setWebhook('https://informer-telebot.herokuapp.com/' + TOKEN)
 
 if __name__ == '__main__':
     main()

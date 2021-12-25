@@ -107,7 +107,7 @@ class StrengthPicker:
         self.civ_vehicle_number_button.text = (int(self.civ_vehicle_number_button.text)) + 1
 
     def inc_motor(self):
-        self.motor_vehicle_number_button.text = (int(self.motor_vehicle_number_button.text)) + 1
+        self.motorbike_number_button.text = (int(self.motorbike_number_button.text)) + 1
 
     def inc_other(self):
         self.other_vehicle_number_button.text = (int(self.other_vehicle_number_button.text)) + 1
