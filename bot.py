@@ -271,8 +271,8 @@ def cancel(update: Update, context: CallbackContext) -> int:
     
 def main() -> None:
     load_dotenv()
-    TOKEN = os.getenv("BOTTOKEN")
-    PORT = os.getenv("PORT")
+    TOKEN = os.environ.get("BOTTOKEN")
+    PORT = int(os.environ.get("PORT", '8443'))
     updater = Updater(TOKEN)
     dispatcher = updater.dispatcher
 
