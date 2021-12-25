@@ -9,9 +9,10 @@ from reply_keyboards import (
     category_keyboard,
     check_point_keyboard,
     Others_keyboard,
+    confirmaion_keyboard,
 )
 from inline_kb import StrengthPicker, TimePicker
-from telegram import ReplyKeyboardMarkup, Update, ReplyKeyboardRemove
+from telegram import ReplyKeyboardMarkup, Update, ReplyKeyboardRemove, replymarkup
 from telegram.ext import (
     Updater,
     CommandHandler, 
@@ -21,6 +22,7 @@ from telegram.ext import (
     CallbackContext,
     CallbackQueryHandler,
 )
+from sendtoAT import create_record
 
 # Enable Loggin
 logging.basicConfig( 
@@ -29,14 +31,17 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-TIME, TOWN_ALPHABET, TOWNSHIP, CATEGORY, CATEGORY1, PIN_LOCATION, TEXT_LOCATION, DESCRIPTION, STRENGTH, ATTACHMENT, SOURCE = range(11)
+TIME, TOWN_ALPHABET, TOWNSHIP, CATEGORY, CATEGORY1, PIN_LOCATION, TEXT_LOCATION, DESCRIPTION, VEHICLE_STRENGTH, PERSONNEL_STRENGTH, ATTACHMENT, SOURCE, CONFIRMATION = range(13)
 inline_for_strength = StrengthPicker()
 inline_for_time = TimePicker()
+
 def start(update: Update, context: CallbackContext) -> int:
     """Start the conversation and asks the user about when it happened"""
     update.message.reply_text(
         "Choose the time of the event", reply_markup=inline_for_time.keyboard,
     )
+    context.user_data['reporter_tele_id'] = str(update.message.from_user.id)
+    context.user_data['reporter_name'] = update.message.from_user.name
     return TIME
 
 def handle_time_callback(update: Update, context: CallbackContext) -> int:
@@ -54,6 +59,16 @@ def handle_time_callback(update: Update, context: CallbackContext) -> int:
         inline_for_time.dec_minute()
     elif query.data == "submit":
         """Save the time and ask for category"""
+        year = str(inline_for_time.current_time.year)
+        month = str(inline_for_time.current_time.month)
+        day = str(inline_for_time.current_time.day)
+        hour = str(inline_for_time.hour_face.text)
+        minute = str(inline_for_time.minute_face.text)
+        d = "-".join([year, month, day])
+        t = ":".join([hour, minute,])
+        dt = ("T:".join([d, t])) + ".000Z"
+        context.user_data['time_of_event'] = dt
+
         query.delete_message()
         query.bot.send_message(
             query.from_user.id,
@@ -80,6 +95,7 @@ def choose_township(update: Update, context: CallbackContext) -> int:
 
 def ask_category(update: Update, context: CallbackContext) -> int:
     """Save township and ask category"""
+    context.user_data['township'] = update.message.text
     update.message.reply_text(
         "Categorise the event",
         reply_markup=category_keyboard, 
@@ -99,10 +115,10 @@ def category1(update: Update, context: CallbackContext) -> int:
         )
         return CATEGORY1
     else:
-        """Save the category and ask town consonant"""
+        """Save the category and ask location pin"""
+        context.user_data['category'] = update.message.text
         update.message.reply_text(
-            """Send when the event occured, Pick a time and press OK to submit""",
-            reply_markup=inline_for_time.keyboard
+            """Attach the locaion of the event, you can do that by pressing the attachment button and choose location""",
         )
         return PIN_LOCATION
 
@@ -114,6 +130,8 @@ def save_category_pin_location(update: Update, context: CallbackContext) -> int:
 
 def save_location_ask_text_location(update: Update, context: CallbackContext) -> int:
     """save pin location ask for location in text"""
+    coordinates = ",".join([str(update.message.location.latitude), str(update.message.location.longitude)])
+    context.user_data['location_coordinates'] = coordinates
     update.message.reply_text(
         """Now send the location of the event in text, you can put here landmarks nearby or the floor of the apartment building
         If you have nothing to add, press space and skip""",
@@ -122,6 +140,8 @@ def save_location_ask_text_location(update: Update, context: CallbackContext) ->
 
 def save_text_location_ask_description(update: Update, context: CallbackContext) -> int:
     """Save text location and ask for description"""
+    location_text = update.message.text
+    context.user_data['location_text'] = location_text
     update.message.reply_text(
         """Write the detailed description of what happened"""
     )
@@ -129,15 +149,86 @@ def save_text_location_ask_description(update: Update, context: CallbackContext)
 
 def save_description_ask_strength(update: Update, context:CallbackContext) -> int:
     """Save description and ask the number of forces"""
+    desc = update.message.text
+    context.user_data['description'] = desc
     update.message.reply_text(
-        """Choose the estimated number of forces you saw"""
+        """Choose the estimated number of forces you saw""", reply_markup=inline_for_strength.vehicle_keyboard,
     )
-    return STRENGTH
+    return VEHICLE_STRENGTH
+
+def handle_strength_callback(update: Update, context: CallbackContext) -> int:
+    global inline_for_strength
+    """Save the vehicle number and ask for personnel number"""
+    query = update.callback_query
+    query.answer()
+    if query.data == "small_vehicle_inc":
+        inline_for_strength.inc_small()
+    if query.data == "small_vehicle_dec":
+        inline_for_strength.dec_small()
+    if query.data == "large_vehicle_inc":
+        inline_for_strength.inc_large()
+    if query.data == "large_vehicle_dec":
+        inline_for_strength.dec_large()
+    if query.data == "civ_vehicle_inc":
+        inline_for_strength.inc_civ()
+    if query.data == "civ_vehicle_dec":
+        inline_for_strength.dec_civ()
+    if query.data == "motorbike_inc":
+        inline_for_strength.inc_motor()
+    if query.data == "motorbike_dec":
+        inline_for_strength.dec_motor()
+    if query.data == "other_vehicle_inc":
+        inline_for_strength.inc_other()
+    if query.data == "other_vehicle_dec":
+        inline_for_strength.dec_other()
+    elif query.data == "submit":
+        query.delete_message()
+        print(inline_for_strength.small_vehicle_number_button.text)
+        print(inline_for_strength.large_vehicle_number_button.text)
+        print(inline_for_strength.other_vehicle_number_button.text)
+        print(inline_for_strength.civ_vehicle_number_button.text)
+        print(inline_for_strength.motorbike_number_button.text)
+        query.bot.send_message(
+            query.from_user.id,
+            """Vehicle number is saved, now telle me about personnel number""", reply_markup=inline_for_strength.personnel_keyboard
+        )
+        return PERSONNEL_STRENGTH
+    query.edit_message_text(
+        """Choose the estimated number of forces you saw""", reply_markup= inline_for_strength.vehicle_keyboard
+    ) 
+    return VEHICLE_STRENGTH
+
+def handle_personnel_strength_callback(update: Update, context: CallbackContext) -> int:
+    global inline_for_strength
+    query = update.callback_query
+    if query.data == "uniform_inc":
+        inline_for_strength.inc_uniform()
+    if query.data == "uniform_dec":
+        inline_for_strength.dec_uniform()
+    if query.data == "plain_inc":
+        inline_for_strength.inc_plain()
+    if query.data == "plain_dec":
+        inline_for_strength.dec_plain()
+    if query.data == "submit":
+        query.delete_message()
+        print(inline_for_strength.uniform_number_button.text)
+        print(inline_for_strength.plain_number_button.text)
+        query.bot.send_message(
+            query.from_user.id,
+        """Would you like to add some attachment to this information?""", reply_markup=confirmaion_keyboard,
+        )
+        return ATTACHMENT
+    query.edit_message_text(
+        """Press OK to submit""",
+        reply_markup= inline_for_strength.personnel_keyboard,
+    )
+    return PERSONNEL_STRENGTH
 
 def save_strength_ask_attachment(update: Update, context:CallbackContext) -> int:
     """Save strength and ask for attachment if any"""
     update.message.reply_text(
-        """Would you like to add some attachment to this information?"""
+        """Would you like to add some attachment to this information?""", 
+        reply_markup=confirmaion_keyboard,
     )
     return ATTACHMENT
 
@@ -151,23 +242,26 @@ def save_attachment_ask_source(update: Update, context: CallbackContext) -> int:
 def ask_confirmation(update: Update, context: CallbackContext) -> int:
     update.message.reply_text(
         "Are you sure you want to report that?",
-        reply_markup=ReplyKeyboardMarkup(
-            [["Yes"], ["No"]], resize_keyboard=True, one_time_keyboard=True
-        ),
+        reply_markup=confirmaion_keyboard,
     )
     return CONFIRMATION
+
+def end_convo(update: Update, context: CallbackContext) -> int:
+    print(context.user_data)
+    create_record(context.user_data)
+    return ConversationHandler.END
 
 def cancel(update: Update, context: CallbackContext) -> int:
     return ConversationHandler.END  
     
 def main() -> None:
     load_dotenv()
-    TOKEN = os.getenv("TOKEN")
+    TOKEN = os.getenv("BOTTOKEN")
     updater = Updater(TOKEN)
     dispatcher = updater.dispatcher
 
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start)],
+        entry_points=[CommandHandler('start', start), CommandHandler('inform', start)],
         states = {
             TIME : [CallbackQueryHandler(handle_time_callback)],
             TOWN_ALPHABET : [MessageHandler(Filters.text, choose_township)],
@@ -177,8 +271,16 @@ def main() -> None:
             PIN_LOCATION : [MessageHandler(Filters.location, save_location_ask_text_location)],
             TEXT_LOCATION : [MessageHandler(Filters.text, save_text_location_ask_description)],
             DESCRIPTION : [MessageHandler(Filters.text, save_description_ask_strength)],
-            STRENGTH : [MessageHandler(Filters.text,  save_strength_ask_attachment)],
+            VEHICLE_STRENGTH : [
+                MessageHandler(Filters.text,  save_strength_ask_attachment),
+                CallbackQueryHandler(handle_strength_callback),
+                ],
+            PERSONNEL_STRENGTH : [
+                CallbackQueryHandler(handle_personnel_strength_callback),
+            ],
             ATTACHMENT : [MessageHandler(Filters.text, save_attachment_ask_source)],
+            SOURCE : [MessageHandler(Filters.text, ask_confirmation)],
+            CONFIRMATION: [MessageHandler(Filters.text, end_convo)],
         },
         fallbacks=[CommandHandler('cancel',cancel)],
     )
@@ -191,4 +293,3 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
-    

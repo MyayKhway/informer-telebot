@@ -38,3 +38,7 @@ Others_keyboard = ReplyKeyboardMarkup(
     ["မီးကြိုးဖြတ်", "ကျူးရှင်း", "မီးလောင်"], 
     ["None of the above"]], resize_keyboard=True, one_time_keyboard=True
 )
+
+confirmaion_keyboard = ReplyKeyboardMarkup(
+    [["Yes", "No"]], resize_keyboard=True, one_time_keyboard=True,
+)

@@ -4,6 +4,8 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from datetime import datetime
 
 class TimePicker:
+    hour_text_button = InlineKeyboardButton("နာရီ", callback_data="display")
+    minute_text_button = InlineKeyboardButton("မိနစ်", callback_data="display")
     hour_inc_button = InlineKeyboardButton("⬆", callback_data="hour_inc")
     minute_inc_button = InlineKeyboardButton("⬆", callback_data="minute_inc")
     hour_dec_button = InlineKeyboardButton("⬇", callback_data="hour_dec")
@@ -13,9 +15,10 @@ class TimePicker:
     def __init__(self):
         self.current_time = datetime.now()
         self.hour_face = InlineKeyboardButton(str(self.current_time.hour), callback_data="hour")
-        self.minute_face = InlineKeyboardButton(str(self.self.current_time.minute), callback_data="minute")
+        self.minute_face = InlineKeyboardButton(str(self.current_time.minute), callback_data="minute")
         self.keyboard = InlineKeyboardMarkup(
             [
+                [self.hour_text_button, self.minute_text_button],
                 [self.hour_inc_button, self.minute_inc_button],
                 [self.hour_face, self.minute_face],
                 [self.hour_dec_button, self.minute_dec_button],
@@ -35,7 +38,9 @@ class TimePicker:
     def dec_minute(self):
         self.minute_face.text = (int(self.minute_face.text) - 1) % 60
 
-    
+    def reset(self):
+        self.hour_face.text = str(self.current_time.hour)
+        self.minute_face.text = str(self.current_time.minute)
 
 class StrengthPicker:
     small_vehicle_text_button = InlineKeyboardButton("စစ်/ရဲကားသေး", callback_data="text")
@@ -66,20 +71,79 @@ class StrengthPicker:
     plain_number_button = InlineKeyboardButton("0", callback_data="display")
     plain_inc_button = InlineKeyboardButton("⬆", callback_data="plain_inc")
     plain_dec_button = InlineKeyboardButton("⬇", callback_data="plain_dec")
+    ok_button = InlineKeyboardButton("OK", callback_data="submit")
 
     def __init__(self) -> None:
         self.vehicle_keyboard = InlineKeyboardMarkup(
             [
-                [self.small_vehicle_text_button, self.large_vehicle_text_button, self.civ_vehicle_text_button, self.motorbike_text_button, self.other_vehicle_text_button],
-                [self.small_vehicle_inc_button, self.large_vehicle_inc_button, self.civ_vehicle_inc_button, self.motorbike_inc_button, self.other_vehicle_inc_button],
-                [self.small_vehicle_number_button, self.large_vehicle_number_button, self.civ_vehicle_number_button, self.motorbike_number_button, self.other_vehicle_number_button],
-                [self.small_vehicle_dec_button, self.large_vehicle_dec_button, self.civ_vehicle_dec_button, self.motorbike_dec_button, self.other_vehicle_dec_button],
+                [self.small_vehicle_text_button, self.large_vehicle_text_button], 
+                [self.small_vehicle_inc_button, self.large_vehicle_inc_button], 
+                [self.small_vehicle_number_button, self.large_vehicle_number_button], 
+                [self.small_vehicle_dec_button, self.large_vehicle_dec_button], 
+                [self.civ_vehicle_text_button, self.motorbike_text_button, self.other_vehicle_text_button],
+                [self.civ_vehicle_inc_button, self.motorbike_inc_button, self.other_vehicle_inc_button],
+                [self.civ_vehicle_number_button, self.motorbike_number_button, self.other_vehicle_number_button],
+                [self.civ_vehicle_dec_button, self.motorbike_dec_button, self.other_vehicle_dec_button],
+                [self.ok_button]
             ]
         )
         self.personnel_keyboard = InlineKeyboardMarkup(
             [
                 [self.uniform_text_button, self.plain_text_button],
                 [self.uniform_inc_button, self.plain_inc_button],
+                [self.uniform_number_button, self.plain_number_button],
                 [self.uniform_dec_button, self.plain_dec_button],
+                [self.ok_button]
             ]
         )
+    
+    def inc_small(self):
+        self.small_vehicle_number_button.text = (int(self.small_vehicle_number_button.text)) + 1
+
+    def inc_large(self):
+        self.large_vehicle_number_button.text = (int(self.large_vehicle_number_button.text)) + 1
+
+    def inc_civ(self):
+        self.civ_vehicle_number_button.text = (int(self.civ_vehicle_number_button.text)) + 1
+
+    def inc_motor(self):
+        self.motor_vehicle_number_button.text = (int(self.motor_vehicle_number_button.text)) + 1
+
+    def inc_other(self):
+        self.other_vehicle_number_button.text = (int(self.other_vehicle_number_button.text)) + 1
+
+    def dec_small(self):
+        if self.small_vehicle_number_button.text != '0':
+            self.small_vehicle_number_button.text = (int(self.small_vehicle_number_button.text)) - 1
+
+    def dec_large(self):
+        if self.large_vehicle_number_button.text != '0':
+            self.large_vehicle_number_button.text = (int(self.large_vehicle_number_button.text)) - 1
+
+    def dec_civ(self):
+        if self.civ_vehicle_number_button.text != '0':
+            self.civ_vehicle_number_button.text = (int(self.civ_vehicle_number_button.text)) - 1
+
+    def dec_motor(self):
+        if self.motorbike_number_button.text != '0':
+            self.motorbike_number_button.text = (int(self.motorbike_number_button.text)) - 1
+
+    def dec_other(self):
+        if self.other_vehicle_number_button.text != '0':
+            self.other_vehicle_number_button.text = (int(self.other_vehicle_number_button.text)) - 1
+
+    def inc_uniform(self):
+        if self.uniform_number_button.text != '0':
+            self.uniform_number_button.text = (int(self.uniform_number_button.text)) + 1
+
+    def dec_uniform(self):
+        if self.uniform_number_button.text != '0':
+            self.uniform_number_button.text = (int(self.uniform_number_button.text)) - 1
+
+    def inc_plain(self):
+        if self.plain_number_button.text != '0':
+            self.plain_number_button.text = (int(self.plain_number_button.text)) + 1
+
+    def dec_uniform(self):
+        if self.plain_number_button.text != '0':
+            self.plain_number_button.text = (int(self.plain_number_button.text)) - 1
