@@ -307,9 +307,9 @@ def main() -> None:
     dispatcher.add_handler(conv_handler)
     
     updater.start_webhook(listen="0.0.0.0",
-                          port=int(PORT),
-                          url_path=TOKEN)
-    updater.bot.setWebhook('https://informer-telebot.herokuapp.com/' + TOKEN)
+                          port=PORT,
+                          url_path=TOKEN,
+                          webhook_url='https://informer-telebot.herokuapp.com/' + TOKEN)
 
 if __name__ == '__main__':
     main()
