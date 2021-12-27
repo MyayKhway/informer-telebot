@@ -133,7 +133,6 @@ class StrengthPicker:
             self.other_vehicle_number_button.text = (int(self.other_vehicle_number_button.text)) - 1
 
     def inc_uniform(self):
-        if self.uniform_number_button.text != '0':
             self.uniform_number_button.text = (int(self.uniform_number_button.text)) + 1
 
     def dec_uniform(self):
@@ -141,9 +140,8 @@ class StrengthPicker:
             self.uniform_number_button.text = (int(self.uniform_number_button.text)) - 1
 
     def inc_plain(self):
-        if self.plain_number_button.text != '0':
             self.plain_number_button.text = (int(self.plain_number_button.text)) + 1
 
-    def dec_uniform(self):
+    def dec_plain(self):
         if self.plain_number_button.text != '0':
             self.plain_number_button.text = (int(self.plain_number_button.text)) - 1

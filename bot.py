@@ -35,7 +35,6 @@ logger = logging.getLogger(__name__)
 TIME, TOWN_ALPHABET, TOWNSHIP, CATEGORY, CATEGORY1, PIN_LOCATION, TEXT_LOCATION, DESCRIPTION, VEHICLE_STRENGTH, PERSONNEL_STRENGTH, ATTACHMENT, SOURCE, CONFIRMATION = range(13)
 inline_for_strength = StrengthPicker()
 inline_for_time = TimePicker()
-
 def start(update: Update, context: CallbackContext) -> int:
     """Start the conversation and asks the user about when it happened"""
     update.message.reply_text(
@@ -67,9 +66,8 @@ def handle_time_callback(update: Update, context: CallbackContext) -> int:
         minute = str(inline_for_time.minute_face.text)
         d = "-".join([year, month, day])
         t = ":".join([hour, minute,])
-        dt = ("T:".join([d, t])) + ".000Z"
+        dt = ("T".join([d, t])) + ":00.000Z"
         context.user_data['time_of_event'] = dt
-
         query.delete_message()
         query.bot.send_message(
             query.from_user.id,
@@ -134,9 +132,8 @@ def save_location_ask_text_location(update: Update, context: CallbackContext) ->
     coordinates = ",".join([str(update.message.location.latitude), str(update.message.location.longitude)])
     context.user_data['location_coordinates'] = coordinates
     update.message.reply_text(
-        """Now send the location of the event in text, you can put here landmarks nearby or the floor of the apartment building
-        If you have nothing to add, press space and skip""",
-    )
+        """Now send the location of the event in text, 
+        You can put here landmarks nearby or the floor of the apartment building""")
     return TEXT_LOCATION
 
 def save_text_location_ask_description(update: Update, context: CallbackContext) -> int:
@@ -183,12 +180,13 @@ def handle_strength_callback(update: Update, context: CallbackContext) -> int:
     if query.data == "other_vehicle_dec":
         inline_for_strength.dec_other()
     elif query.data == "submit":
+        """Save here"""
+        context.user_data['small_vehicle'] = int(inline_for_strength.small_vehicle_number_button.text)
+        context.user_data['large_vehicle'] = int(inline_for_strength.large_vehicle_number_button.text)
+        context.user_data['other_vehicle']= int(inline_for_strength.other_vehicle_number_button.text)
+        context.user_data['civ_vehicle'] = int(inline_for_strength.civ_vehicle_number_button.text)
+        context.user_data['motorbike'] = int(inline_for_strength.motorbike_number_button.text)
         query.delete_message()
-        print(inline_for_strength.small_vehicle_number_button.text)
-        print(inline_for_strength.large_vehicle_number_button.text)
-        print(inline_for_strength.other_vehicle_number_button.text)
-        print(inline_for_strength.civ_vehicle_number_button.text)
-        print(inline_for_strength.motorbike_number_button.text)
         query.bot.send_message(
             query.from_user.id,
             """Vehicle number is saved, now telle me about personnel number""", reply_markup=inline_for_strength.personnel_keyboard
@@ -200,7 +198,6 @@ def handle_strength_callback(update: Update, context: CallbackContext) -> int:
     return VEHICLE_STRENGTH
 
 def handle_personnel_strength_callback(update: Update, context: CallbackContext) -> int:
-    global inline_for_strength
     query = update.callback_query
     if query.data == "uniform_inc":
         inline_for_strength.inc_uniform()
@@ -211,9 +208,9 @@ def handle_personnel_strength_callback(update: Update, context: CallbackContext)
     if query.data == "plain_dec":
         inline_for_strength.dec_plain()
     if query.data == "submit":
+        context.user_data['uniform'] = int(inline_for_strength.uniform_number_button.text)
+        context.user_data['plain'] = int(inline_for_strength.plain_number_button.text)
         query.delete_message()
-        print(inline_for_strength.uniform_number_button.text)
-        print(inline_for_strength.plain_number_button.text)
         query.bot.send_message(
             query.from_user.id,
         """Would you like to add some attachment to this information?""", reply_markup=confirmaion_keyboard,
@@ -244,17 +241,66 @@ def ask_for_attachment(update: Update, context: CallbackContext) -> int:
             """What is the source?"""
         )
     return SOURCE
+    
+def save_photo_ask_source(update: Update, context: CallbackContext) -> int:
+    file = update.message.photo[-1].get_file()
+    filename = context.user_data["time_of_event"] + context.user_data["township"]
+    context.user_data["attachment"] = [
+        {
+            "url" : file.file_path,
+            "filename" : filename
+        }
+    ]
+    update.message.reply_text(
+        """What is your source?"""
+    )
+    return SOURCE
 
-def save_attachment_ask_source(update: Update, context: CallbackContext) -> int:
-    """Save attachment"""
-    file = context.bot.getFile(update.message.photo[-1].file_id)
-    print(json.dumps(file))
+def save_audio_ask_source(update: Update, context: CallbackContext) -> int:
+    file = update.message.audio.get_file()
+    filename = context.user_data["time_of_event"] + context.user_data["township"]
+    context.user_data["attachment"] = [
+        {
+            "url" : file.file_path,
+            "filename" : filename
+        }
+    ]
+    update.message.reply_text(
+        """What is your source?"""
+    )
+    return SOURCE
+
+def save_video_ask_source(update: Update, context: CallbackContext) -> int:
+    file = update.message.video.get_file()
+    filename = context.user_data["time_of_event"] + context.user_data["township"]
+    context.user_data["attachment"] = [
+        {
+            "url" : file.file_path,
+            "filename" : filename
+        }
+    ]
+    update.message.reply_text(
+        """What is your source?"""
+    )
+    return SOURCE
+
+def save_document_ask_source(update: Update, context: CallbackContext) -> int:
+    file = update.message.document.get_file()
+    filename = context.user_data["time_of_event"] + context.user_data["township"]
+    context.user_data["attachment"] = [
+        {
+            "url" : file.file_path,
+            "filename" : filename
+        }
+    ]
     update.message.reply_text(
         """What is your source?"""
     )
     return SOURCE
 
 def ask_confirmation(update: Update, context: CallbackContext) -> int:
+    """Save source"""
+    context.user_data['source'] = update.message.text
     update.message.reply_text(
         "Are you sure you want to report that?",
         reply_markup=confirmaion_keyboard,
@@ -264,6 +310,9 @@ def ask_confirmation(update: Update, context: CallbackContext) -> int:
 def end_convo(update: Update, context: CallbackContext) -> int:
     print(context.user_data)
     create_record(context.user_data)
+    update.message.reply_text(
+        """Thanks for informing. You can inform a new one by typing "/inform"""
+    )
     return ConversationHandler.END
 
 def cancel(update: Update, context: CallbackContext) -> int:
@@ -296,7 +345,9 @@ def main() -> None:
             ],
             ATTACHMENT : [
                 MessageHandler(Filters.text, ask_for_attachment),
-                MessageHandler(Filters.attachment, save_attachment_ask_source)
+                MessageHandler(Filters.photo, save_photo_ask_source),
+                MessageHandler(Filters.video, save_video_ask_source),
+                MessageHandler(Filters.document, save_document_ask_source),
                 ],
             SOURCE : [MessageHandler(Filters.text, ask_confirmation)],
             CONFIRMATION: [MessageHandler(Filters.text, end_convo)],
@@ -305,11 +356,12 @@ def main() -> None:
     )
 
     dispatcher.add_handler(conv_handler)
-    
-    updater.start_webhook(listen="0.0.0.0",
+    updater.start_polling()
+    updater.idle() 
+    """updater.start_webhook(listen="0.0.0.0",
                           port=PORT,
                           url_path=TOKEN,
-                          webhook_url='https://informer-telebot.herokuapp.com/' + TOKEN)
+                          webhook_url='https://informer-telebot.herokuapp.com/' + TOKEN)"""
 
 if __name__ == '__main__':
     main()
