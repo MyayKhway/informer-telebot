@@ -1,7 +1,5 @@
 import os
-import json
 import logging
-from typing import Dict
 from dotenv.main import load_dotenv
 from telegram.inline.inlinekeyboardbutton import InlineKeyboardButton
 from reply_keyboards import (
@@ -63,7 +61,8 @@ def handle_time_callback(update: Update, context: CallbackContext) -> int:
         year = str(inline_for_time.current_time.year)
         month = str(inline_for_time.current_time.month)
         day = str(inline_for_time.current_time.day)
-        hour = str(inline_for_time.hour_face.text)
+        hour_int = int(inline_for_time.hour_face.text)
+        hour = str(hour_int) if hour_int >= 10 else "0" + str(hour_int) 
         minute = str(inline_for_time.minute_face.text)
         d = "-".join([year, month, day])
         t = ":".join([hour, minute,])
@@ -371,10 +370,12 @@ def main() -> None:
     )
 
     dispatcher.add_handler(conv_handler)
-    updater.start_webhook(listen="0.0.0.0",
+    updater.start_polling()
+    updater.idle()
+    """updater.start_webhook(listen="0.0.0.0",
                           port=PORT,
                           url_path=TOKEN,
-                          webhook_url='https://informer-telebot.herokuapp.com/' + TOKEN)
+                          webhook_url='https://informer-telebot.herokuapp.com/' + TOKEN)"""
 
 if __name__ == '__main__':
     main()

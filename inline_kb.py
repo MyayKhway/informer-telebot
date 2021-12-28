@@ -1,7 +1,7 @@
 from typing import Text
 from telegram.ext import InlineQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from datetime import datetime
+from datetime import datetime, timezone
 
 class TimePicker:
     hour_text_button = InlineKeyboardButton("နာရီ", callback_data="display")
@@ -13,7 +13,7 @@ class TimePicker:
     ok_button = InlineKeyboardButton("OK", callback_data="submit")
     
     def __init__(self):
-        self.current_time = datetime.now()
+        self.current_time = datetime.now(timezone('Asia/Yangon'))
         self.hour_face = InlineKeyboardButton(str(self.current_time.hour), callback_data="hour")
         self.minute_face = InlineKeyboardButton(str(self.current_time.minute), callback_data="minute")
         self.keyboard = InlineKeyboardMarkup(
