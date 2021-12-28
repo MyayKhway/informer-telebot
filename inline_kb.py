@@ -145,3 +145,16 @@ class StrengthPicker:
     def dec_plain(self):
         if self.plain_number_button.text != '0':
             self.plain_number_button.text = (int(self.plain_number_button.text)) - 1
+
+    def reset_vehicle(self):
+        self.small_vehicle_number_button.text = "0"
+        self.large_vehicle_number_button.text = "0"
+        self.civ_vehicle_number_button.text = "0"
+        self.other_vehicle_number_button.text = "0"
+        self.motorbike_number_button.text = "0"
+
+    def reset_personnel(self):
+        self.uniform_number_button.text = "0"
+        self.plain_number_button.text = "0"
+        
+    

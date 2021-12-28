@@ -33,9 +33,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 TIME, TOWN_ALPHABET, TOWNSHIP, CATEGORY, CATEGORY1, PIN_LOCATION, TEXT_LOCATION, DESCRIPTION, VEHICLE_STRENGTH, PERSONNEL_STRENGTH, ATTACHMENT, SOURCE, CONFIRMATION = range(13)
-inline_for_strength = StrengthPicker()
-inline_for_time = TimePicker()
+
 def start(update: Update, context: CallbackContext) -> int:
+    global inline_for_time
+    inline_for_time = TimePicker()
     """Start the conversation and asks the user about when it happened"""
     update.message.reply_text(
         "Choose the time of the event", reply_markup=inline_for_time.keyboard,
@@ -71,10 +72,10 @@ def handle_time_callback(update: Update, context: CallbackContext) -> int:
         query.delete_message()
         query.bot.send_message(
             query.from_user.id,
-        " Choose the first letter of the township where it happened."
-        "North Dagon, South Dagon, East Dagon begins with ဒ and North and South Okkalapa begins with ဥ",
+        " Choose the first letter of the township where it happened.",
         reply_markup=township_first_consonant_keyboard,
         )
+        inline_for_time.reset()
         return TOWN_ALPHABET
     query.edit_message_text(
         "Press Ok after you have chosen", reply_markup=inline_for_time.keyboard
@@ -110,7 +111,6 @@ def category1(update: Update, context: CallbackContext) -> int:
     elif update.message.text == "*စစ်ဆေးခြင်း/ဖမ်းစီးခြင်း*":
         update.message.reply_text(
             "Choose the category,", reply_markup=check_point_keyboard,
-            parse_mode='Markdown',
         )
         return CATEGORY1
     else:
@@ -122,8 +122,9 @@ def category1(update: Update, context: CallbackContext) -> int:
         return PIN_LOCATION
 
 def save_category_pin_location(update: Update, context: CallbackContext) -> int:
+    context.user_data['category'] = update.message.text
     update.message.reply_text(
-        """Pin the location"""
+        """Attach the locaion of the event, you can do that by pressing the attachment button and choose location"""
     )
     return PIN_LOCATION
 
@@ -147,6 +148,8 @@ def save_text_location_ask_description(update: Update, context: CallbackContext)
 
 def save_description_ask_strength(update: Update, context:CallbackContext) -> int:
     """Save description and ask the number of forces"""
+    global inline_for_strength
+    inline_for_strength = StrengthPicker()
     desc = update.message.text
     context.user_data['description'] = desc
     update.message.reply_text(
@@ -189,8 +192,10 @@ def handle_strength_callback(update: Update, context: CallbackContext) -> int:
         query.delete_message()
         query.bot.send_message(
             query.from_user.id,
-            """Vehicle number is saved, now telle me about personnel number""", reply_markup=inline_for_strength.personnel_keyboard
+            """Vehicle number is saved, 
+              now tell us about personnel number""", reply_markup=inline_for_strength.personnel_keyboard
         )
+        inline_for_strength.reset_vehicle()
         return PERSONNEL_STRENGTH
     query.edit_message_text(
         """Choose the estimated number of forces you saw""", reply_markup= inline_for_strength.vehicle_keyboard
@@ -215,6 +220,7 @@ def handle_personnel_strength_callback(update: Update, context: CallbackContext)
             query.from_user.id,
         """Would you like to add some attachment to this information?""", reply_markup=confirmaion_keyboard,
         )
+        inline_for_strength.reset_personnel()
         return ATTACHMENT
     query.edit_message_text(
         """Press OK to submit""",
@@ -301,18 +307,27 @@ def save_document_ask_source(update: Update, context: CallbackContext) -> int:
 def ask_confirmation(update: Update, context: CallbackContext) -> int:
     """Save source"""
     context.user_data['source'] = update.message.text
+    confirmation_text = "{month} လပိုင်း {day} ရက်နေ့ {time} နာရီမှာ {township} မြို့အတွင်းဖြစ်ခဲ့တဲ့ {category} ကို သတင်းပေးမှာ သေချာပြီလား။ ဖြစ်စဉ်အသေးစိတ်က {description} ပါ။ သေချာရင် Yes လိုရိုက်ပြီး သတင်းမပေးလိုရင် No လိုရိုက်ပါ။"
+    format_string = confirmation_text.format(
+    month = inline_for_time.current_time.month,
+    day = inline_for_time.current_time.day,
+    time = context.user_data['time_of_event'][11:16],
+    township = context.user_data['township'],
+    category = context.user_data['category'],
+    description = context.user_data['description'],
+    )
     update.message.reply_text(
-        "Are you sure you want to report that?",
+        format_string,
         reply_markup=confirmaion_keyboard,
     )
     return CONFIRMATION
 
 def end_convo(update: Update, context: CallbackContext) -> int:
     print(context.user_data)
-    create_record(context.user_data)
     update.message.reply_text(
         """Thanks for informing. You can inform a new one by typing "/inform"""
     )
+    create_record(context.user_data)
     return ConversationHandler.END
 
 def cancel(update: Update, context: CallbackContext) -> int:
