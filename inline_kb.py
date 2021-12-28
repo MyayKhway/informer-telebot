@@ -1,7 +1,8 @@
 from typing import Text
 from telegram.ext import InlineQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from datetime import datetime, timezone
+from datetime import datetime 
+from pytz import timezone
 
 class TimePicker:
     hour_text_button = InlineKeyboardButton("နာရီ", callback_data="display")
