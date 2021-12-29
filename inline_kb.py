@@ -157,5 +157,3 @@ class StrengthPicker:
     def reset_personnel(self):
         self.uniform_number_button.text = "0"
         self.plain_number_button.text = "0"
-        
-    

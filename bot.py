@@ -37,7 +37,7 @@ def start(update: Update, context: CallbackContext) -> int:
     inline_for_time = TimePicker()
     """Start the conversation and asks the user about when it happened"""
     update.message.reply_text(
-        "Choose the time of the event", reply_markup=inline_for_time.keyboard,
+        "အကြောင်းအရာဖြစ်ပျက်ချိန်ကို ရွေးချယ်ပါ။ ပြီးရင် OK နှိပ်ပါ။", reply_markup=inline_for_time.keyboard,
     )
     context.user_data['reporter_tele_id'] = str(update.message.from_user.id)
     context.user_data['reporter_name'] = update.message.from_user.name
@@ -63,7 +63,8 @@ def handle_time_callback(update: Update, context: CallbackContext) -> int:
         day = str(inline_for_time.current_time.day)
         hour_int = int(inline_for_time.hour_face.text)
         hour = str(hour_int) if hour_int >= 10 else "0" + str(hour_int) 
-        minute = str(inline_for_time.minute_face.text)
+        minute_int = int(inline_for_time.minute_face.text)
+        minute = str(minute_int) if minute_int >= 10 else "0" + str(minute_int) 
         d = "-".join([year, month, day])
         t = ":".join([hour, minute,])
         dt = ("T".join([d, t])) + ":00.000Z"
@@ -71,13 +72,13 @@ def handle_time_callback(update: Update, context: CallbackContext) -> int:
         query.delete_message()
         query.bot.send_message(
             query.from_user.id,
-        " Choose the first letter of the township where it happened.",
+        "ဖြစ်ပျက်သွားသော မြို့နယ်၏ အစ စကားလုံးကိုရွေးချယ်ပါ။(ဥပမာ - ကမာရွတ် အတွက် 'က')",
         reply_markup=township_first_consonant_keyboard,
         )
         inline_for_time.reset()
         return TOWN_ALPHABET
     query.edit_message_text(
-        "Press Ok after you have chosen", reply_markup=inline_for_time.keyboard
+        "အကြောင်းအရာဖြစ်ပျက်ချိန်ကို ရွေးချယ်ပါ။ ပြီးရင် OK နှိပ်ပါ။", reply_markup=inline_for_time.keyboard
     )
     return TIME
 
@@ -86,7 +87,7 @@ def choose_township(update: Update, context: CallbackContext) -> int:
     kb_dict = township_keyboards_dict
     chosen_consonant = update.message.text
     update.message.reply_text(
-        "Choose the township",
+        "မြို့နယ်ရွေးချယ်ပါ။",
         reply_markup=ReplyKeyboardMarkup(
            kb_dict.get(chosen_consonant),resize_keyboard=True, one_time_keyboard=True, input_field_placeholder="Township"), 
         )
@@ -96,7 +97,7 @@ def ask_category(update: Update, context: CallbackContext) -> int:
     """Save township and ask category"""
     context.user_data['township'] = update.message.text
     update.message.reply_text(
-        "Categorise the event",
+        "သတင်းအမျိုးအစားကို ‌ရွေးချယ်ပါ။",
         reply_markup=category_keyboard, 
         )
     return CATEGORY
@@ -104,26 +105,26 @@ def ask_category(update: Update, context: CallbackContext) -> int:
 def category1(update: Update, context: CallbackContext) -> int: 
     if update.message.text == "Others":
         update.message.reply_text(
-            "Choose the category, choose none of the above if you cannot categorize", reply_markup=Others_keyboard
+            "သတင်းအမျိုးအစားကို ‌ရွေးချယ်ပါ။", reply_markup=Others_keyboard
         )
         return CATEGORY1
     elif update.message.text == "*စစ်ဆေးခြင်း/ဖမ်းစီးခြင်း*":
         update.message.reply_text(
-            "Choose the category,", reply_markup=check_point_keyboard,
+            "သတင်းအမျိုးအစားကို ‌ရွေးချယ်ပါ။", reply_markup=check_point_keyboard,
         )
         return CATEGORY1
     else:
         """Save the category and ask location pin"""
         context.user_data['category'] = update.message.text
         update.message.reply_text(
-            """Attach the locaion of the event, you can do that by pressing the attachment button and choose location""",
+            """ဖြစ်ပျက်သွားသောနေရာကို မြေပုံထောက်ပေးပါ။ (📎ကိုနှိပ်ပြီး Location တွင် မြေပုံထောက်ရွေးချယ် နိုင်ပါသည်။)""",
         )
         return PIN_LOCATION
 
 def save_category_pin_location(update: Update, context: CallbackContext) -> int:
     context.user_data['category'] = update.message.text
     update.message.reply_text(
-        """Attach the locaion of the event, you can do that by pressing the attachment button and choose location"""
+        """ဖြစ်ပျက်သွားသောနေရာကို မြေပုံထောက်ပေးပါ။ (📎ကိုနှိပ်ပြီး Location တွင် မြေပုံထောက်ရွေးချယ် နိုင်ပါသည်။)"""
     )
     return PIN_LOCATION
 
@@ -132,8 +133,9 @@ def save_location_ask_text_location(update: Update, context: CallbackContext) ->
     coordinates = ",".join([str(update.message.location.latitude), str(update.message.location.longitude)])
     context.user_data['location_coordinates'] = coordinates
     update.message.reply_text(
-        """Now send the location of the event in text, 
-        You can put here landmarks nearby or the floor of the apartment building""")
+        """ဖြစ်ပျက်သွားသောနေရာကို စာဖြင့် အသေးစိတ်ဖော်ပြပါ။ 
+        ထင်ရှားသောနေရာများ၊ တိုက်အလွှာများ၊ လမ်းကြောင်း ဦးတည်ရာများ ထည့်ရေးနိုင်သည်။ 
+        (ဥပမာ - YMBA အနောက်ပေါက် (သို့) မလွှကုန်းမှ တာမွေဈေးဘက်)""")
     return TEXT_LOCATION
 
 def save_text_location_ask_description(update: Update, context: CallbackContext) -> int:
@@ -141,7 +143,7 @@ def save_text_location_ask_description(update: Update, context: CallbackContext)
     location_text = update.message.text
     context.user_data['location_text'] = location_text
     update.message.reply_text(
-        """Write the detailed description of what happened"""
+        """အဖြစ်အပျက် အသေးစိတ်ကို ဖော်ပြပါ။"""
     )
     return DESCRIPTION
 
@@ -151,8 +153,13 @@ def save_description_ask_strength(update: Update, context:CallbackContext) -> in
     inline_for_strength = StrengthPicker()
     desc = update.message.text
     context.user_data['description'] = desc
+    if context.user_data['category'] in ["ခြိမ်းေခြာက်", "Drone", "CCTV", "လူမှုပြဿနာ", "အိမ်ချိတ်ပိတ်", "လော်‌နဲ့ကြေငြာ", "ပစ်ခတ်/ေပါက်ကွဲသံ", "ဒလန်" ]:
+        update.message.reply_text(
+        """အကြောင်းအရာနှင့် ပတ်သက်ပြီး အသံဖိုင် ဓါတ်ပုံ ဗီဒီယို ပေးပို့လိုပါသလား?""", reply_markup=confirmaion_keyboard,
+        )
+        return ATTACHMENT
     update.message.reply_text(
-        """Choose the estimated number of forces you saw""", reply_markup=inline_for_strength.vehicle_keyboard,
+        """ကား အစီးရေကို ရွေးချယ်ပါ။ ပြီးရင် OK နှိပ်ပါ။""", reply_markup=inline_for_strength.vehicle_keyboard,
     )
     return VEHICLE_STRENGTH
 
@@ -191,13 +198,12 @@ def handle_strength_callback(update: Update, context: CallbackContext) -> int:
         query.delete_message()
         query.bot.send_message(
             query.from_user.id,
-            """Vehicle number is saved, 
-              now tell us about personnel number""", reply_markup=inline_for_strength.personnel_keyboard
+            """ရန်သူအင်အားကို ရွေးချယ်ပါ။ ပြီးရင် OK နှိပ်ပါ။""", reply_markup=inline_for_strength.personnel_keyboard
         )
         inline_for_strength.reset_vehicle()
         return PERSONNEL_STRENGTH
     query.edit_message_text(
-        """Choose the estimated number of forces you saw""", reply_markup= inline_for_strength.vehicle_keyboard
+        """ကား အစီးရေကို ရွေးချယ်ပါ။ ပြီးရင် OK နှိပ်ပါ။""", reply_markup= inline_for_strength.vehicle_keyboard
     ) 
     return VEHICLE_STRENGTH
 
@@ -217,12 +223,12 @@ def handle_personnel_strength_callback(update: Update, context: CallbackContext)
         query.delete_message()
         query.bot.send_message(
             query.from_user.id,
-        """Would you like to add some attachment to this information?""", reply_markup=confirmaion_keyboard,
+        """အကြောင်းအရာနှင့် ပတ်သက်ပြီး အသံဖိုင် ဓါတ်ပုံ ဗီဒီယို ပေးပို့လိုပါသလား?""", reply_markup=confirmaion_keyboard,
         )
         inline_for_strength.reset_personnel()
         return ATTACHMENT
     query.edit_message_text(
-        """Press OK to submit""",
+        """ရန်သူအင်အားကို ရွေးချယ်ပါ။ ပြီးရင် OK နှိပ်ပါ။""",
         reply_markup= inline_for_strength.personnel_keyboard,
     )
     return PERSONNEL_STRENGTH
@@ -230,7 +236,7 @@ def handle_personnel_strength_callback(update: Update, context: CallbackContext)
 def save_strength_confirm_attachment(update: Update, context:CallbackContext) -> int:
     """Save strength and ask for attachment if any"""
     update.message.reply_text(
-        """Would you like to add some attachment to this information?""", 
+        """အကြောင်းအရာနှင့် ပတ်သက်ပြီး အသံဖိုင် ဓါတ်ပုံ ဗီဒီယို ပေးပို့လိုပါသလား?""", 
         reply_markup=confirmaion_keyboard,
     )
     return ATTACHMENT
@@ -238,12 +244,12 @@ def save_strength_confirm_attachment(update: Update, context:CallbackContext) ->
 def ask_for_attachment(update: Update, context: CallbackContext) -> int:
     if update.message.text == "Yes":
         update.message.reply_text(
-            """Attach a file""",
+            """ဓါတ်ပုံ ဗီဒီယို ပေးပို့လိုပါ က📎 တွင် attachment တွဲပြီး ပေးပို့နိုင်ပါသည်။""",
         )
         return ATTACHMENT
     else:
         update.message.reply_text(
-            """What is the source?"""
+            """သတင်းရင်းမြစ်ကို ဖော်ပြပေးပါ။"""
         )
     return SOURCE
     
@@ -257,7 +263,7 @@ def save_photo_ask_source(update: Update, context: CallbackContext) -> int:
         }
     ]
     update.message.reply_text(
-        """What is your source?"""
+        """သတင်းရင်းမြစ်ကို ဖော်ပြပေးပါ။"""
     )
     return SOURCE
 
@@ -271,7 +277,7 @@ def save_audio_ask_source(update: Update, context: CallbackContext) -> int:
         }
     ]
     update.message.reply_text(
-        """What is your source?"""
+        """သတင်းရင်းမြစ်ကို ဖော်ပြပေးပါ။"""
     )
     return SOURCE
 
@@ -285,7 +291,7 @@ def save_video_ask_source(update: Update, context: CallbackContext) -> int:
         }
     ]
     update.message.reply_text(
-        """What is your source?"""
+        """သတင်းရင်းမြစ်ကို ဖော်ပြပေးပါ။"""
     )
     return SOURCE
 
@@ -299,7 +305,7 @@ def save_document_ask_source(update: Update, context: CallbackContext) -> int:
         }
     ]
     update.message.reply_text(
-        """What is your source?"""
+        """သတင်းရင်းမြစ်ကို ဖော်ပြပေးပါ။"""
     )
     return SOURCE
 
@@ -324,7 +330,7 @@ def ask_confirmation(update: Update, context: CallbackContext) -> int:
 def end_convo(update: Update, context: CallbackContext) -> int:
     print(context.user_data)
     update.message.reply_text(
-        """Thanks for informing. You can inform a new one by typing "/inform"""
+        """သတင်းပေးပို့ပေးတဲ့အတွက် ကျေးဇူးတင်ပါတယ်။ သတင်းထပ်ပို့ရန် /infrom ကိုနှိပ်ပါ။""",
     )
     create_record(context.user_data)
     return ConversationHandler.END
@@ -367,9 +373,12 @@ def main() -> None:
             CONFIRMATION: [MessageHandler(Filters.text, end_convo)],
         },
         fallbacks=[CommandHandler('cancel',cancel)],
+        conversation_timeout=300,
+        allow_reentry=True,
     )
 
     dispatcher.add_handler(conv_handler)
+
     updater.start_webhook(listen="0.0.0.0",
                           port=PORT,
                           url_path=TOKEN,
